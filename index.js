@@ -22,14 +22,15 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 client.connect(err => {
   const appointmentCollection = client.db("doctorsPortal").collection("appointments");
   const doctorsCollection = client.db("doctorsPortal").collection("doctors");
+  const adminCollection = client.db("doctorsPortal").collection("admin");
   console.log('im connected to db')
 
-  app.post("/addAppointment",(req,res) => {
+  app.post("/addAppointment", (req, res) => {
     const appointment = req.body;
     appointmentCollection.insertOne(appointment)
-      .then(result=> {
-      res.send(result)
-    })
+      .then(result => {
+        res.send(result)
+      })
      
   })
 
@@ -39,7 +40,7 @@ client.connect(err => {
     doctorsCollection.find({ email: email })
       .toArray((err, doctors) => {
         const filter = { date: byDate.date };
-        if (doctors.length ===0) {
+        if (doctors.length === 0) {
           filter.email = email;
         }
         appointmentCollection.find(filter)
@@ -55,6 +56,13 @@ client.connect(err => {
         res.send(doctors.length > 0);
       })
   });
+  app.post('/is-admin', (req, res) => {
+    const email = req.body.email;
+    adminCollection.find({ email: email })
+      .toArray((err, admin) => {
+        res.send(admin.length > 0);
+      })
+  })
 
 
   app.get('/all-patietns', (req, res) => {
@@ -68,13 +76,15 @@ client.connect(err => {
     const file = req.files.file;
     const name = req.body.name;
     const email = req.body.email;
-    const phone = req.body.phone;    
+    const phone = req.body.phone;
+    // console.log(file,name,email,phone);
+    
     const filePath = `${__dirname}/doctors/${file.name}`;
     
     file.mv(filePath, err => {
       if (err) {
         console.log(err)
-        res.status(500).send({mgs: 'Failded to upload image'})
+        res.status(500).send({ mgs: 'Failded to upload image' })
       }
       const newImg = fs.readFileSync(filePath);
       const encImg = newImg.toString('base64');
@@ -83,28 +93,25 @@ client.connect(err => {
         size: req.files.file.size,
         img: Buffer(encImg, 'base64')
       };
-      doctorsCollection.insertOne({ name, email,phone, image })
+      doctorsCollection.insertOne({ name, email, phone, image })
         .then(result => {
           fs.remove(filePath, error => {
             if (error) {
               console.log(error)
               res.status(500).send({ mgs: 'Failded to upload image' })
             }
-            res.send(result.insertedCount>0)
+            res.send(result.insertedCount > 0)
           })
-      })
-      // return res.send({name: file.name,path:`/${file.name}`})
+        })
     })
-  })
-  app.get('/doctors', (req, res) => {
-    doctorsCollection.find({})
-      .toArray((err, documents) => {
-        res.send(documents)
-      })
-  })
+    app.get('/doctors', (req, res) => {
+      doctorsCollection.find({})
+        .toArray((err, documents) => {
+          res.send(documents)
+        })
+    })
 
 
+  });
 });
-
-
 app.listen(process.env.PORT || port)
