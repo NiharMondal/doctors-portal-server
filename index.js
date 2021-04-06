@@ -2,7 +2,6 @@ const express = require('express')
 const cors = require('cors')
 require('dotenv').config();
 const fileUpload = require('express-fileupload')
-const fs = require('fs-extra');
 const app = express();
 
 app.use(cors());
@@ -31,7 +30,6 @@ client.connect(err => {
       .then(result => {
         res.send(result)
       })
-     
   })
 
   app.post('/appointments-list', (req, res) => {
@@ -65,7 +63,7 @@ client.connect(err => {
   })
 
 
-  app.get('/all-patietns', (req, res) => {
+  app.get('/all-patients', (req, res) => {
     appointmentCollection.find({})
       .toArray((err, documents) => {
         res.send(documents)
@@ -77,41 +75,25 @@ client.connect(err => {
     const name = req.body.name;
     const email = req.body.email;
     const phone = req.body.phone;
-    // console.log(file,name,email,phone);
-    
-    const filePath = `${__dirname}/doctors/${file.name}`;
-    
-    file.mv(filePath, err => {
-      if (err) {
-        console.log(err)
-        res.status(500).send({ mgs: 'Failded to upload image' })
-      }
-      const newImg = fs.readFileSync(filePath);
-      const encImg = newImg.toString('base64');
-      let image = {
-        contentType: req.files.file.mimetype,
-        size: req.files.file.size,
-        img: Buffer(encImg, 'base64')
-      };
-      doctorsCollection.insertOne({ name, email, phone, image })
-        .then(result => {
-          fs.remove(filePath, error => {
-            if (error) {
-              console.log(error)
-              res.status(500).send({ mgs: 'Failded to upload image' })
-            }
-            res.send(result.insertedCount > 0)
-          })
-        })
-    })
-    app.get('/doctors', (req, res) => {
-      doctorsCollection.find({})
-        .toArray((err, documents) => {
-          res.send(documents)
-        })
-    })
-
-
+    const newImg = file.data;
+    const encImg = newImg.toString('base64');
+    let image = {
+      contentType: req.files.file.mimetype,
+      size: req.files.file.size,
+      img: Buffer.from(encImg, 'base64')
+    };
+    doctorsCollection.insertOne({ name, email, phone, image })
+      .then(result => {
+        res.send(result.insertedCount > 0);
+      });
   });
+
+  app.get('/doctors', (req, res) => {
+    doctorsCollection.find({})
+      .toArray((err, documents) => {
+        res.send(documents)
+      })
+  })
+
 });
 app.listen(process.env.PORT || port)
