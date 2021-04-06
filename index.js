@@ -90,10 +90,10 @@ client.connect(err => {
 
   app.get('/doctors', (req, res) => {
     doctorsCollection.find({})
-      .toArray((err, documents) => {
-        res.send(documents)
+      .toArray((err, docDocuments) => {
+        res.send(docDocuments)
       })
-  })
+  });
 
 });
 app.listen(process.env.PORT || port)
